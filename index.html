@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APEX</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #111b21; color: #e9edef; height: 100dvh; display: flex; flex-direction: column; }
+  .hidden { display: none !important; }
+  input, button { font: inherit; padding: 12px; border-radius: 8px; border: 0; }
+  input { background: #2a3942; color: #e9edef; }
+  button { background: #00a884; color: #fff; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: default; }
+
+  /* ---------- الهيدر (شكل APEX) ---------- */
+  header.chat-header { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #202c33; }
+  .group-avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+  .group-avatar img { width: 100%; height: 100%; object-fit: cover; display: none; }
+  /* APEX Branding */
+  .apex-logo {
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: white;
+    font-size: 25px;
+    font-weight: 800;
+    font-family: 'Inter', sans-serif;
+    border: 1px solid #ffffff25;
+    box-shadow: 0 0 18px #4936a540;
+    letter-spacing: -2px;
+  }
+  .group-info { flex: 1; min-width: 0; }
+  .group-info h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .group-info p { margin: 2px 0 0; color: #8b9bab; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  #dot { width: 8px; height: 8px; border-radius: 50%; background: #8696a0; display: none; }
+  #dot.on { background: #3ddc84; }
+  .header-actions { display: none; gap: 2px; position: relative; }
+  .icon-btn { background: transparent; color: #aebac1; width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+  .icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .menu { position: absolute; top: 44px; left: 0; background: #233138; border-radius: 8px; box-shadow: 0 6px 24px #0008; z-index: 20; min-width: 140px; overflow: hidden; }
+  .menu button { display: block; width: 100%; background: transparent; text-align: right; padding: 12px 16px; border-radius: 0; }
+
+  #search-bar { display: flex; gap: 8px; padding: 8px 12px; background: #182229; align-items: center; }
+  #search-bar input { flex: 1; min-width: 0; }
+
+  #members-panel { position: fixed; top: 0; bottom: 0; left: 0; width: min(300px, 85%); background: #1a252c; z-index: 30; padding: 14px; box-shadow: 4px 0 24px #000a; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+  #members-panel .mp-head { display: flex; align-items: center; justify-content: space-between; font-size: 17px; }
+  .member { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #ffffff12; }
+  .member .av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; }
+  .member small { display: block; color: #8b9bab; font-size: 12px; }
+  .mp-note { color: #8b9bab; font-size: 12px; margin-top: auto; }
+
+  /* ---------- صفحات الدخول ---------- */
+  .page { margin: auto; display: none; flex-direction: column; gap: 10px; width: min(320px, 90%); }
+  .page h2 { margin: 0; font-size: 22px; }
+  .page p { margin: 0; color: #8696a0; }
+  .err { color: #ff8a80; min-height: 1.3em; }
+  .err.info { color: #8696a0; }
+  .link { background: transparent; color: #53bdeb; padding: 4px; }
+
+  /* ---------- الشات ---------- */
+  #chat { display: none; flex: 1; min-height: 0; flex-direction: column; position: relative; }
+  #box { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .m { max-width: 82%; padding: 8px 12px; border-radius: 10px; background: #202c33; align-self: flex-start; }
+  .m.me { background: #005c4b; align-self: flex-end; }
+  .m small { display: block; opacity: .6; font-size: 12px; margin-bottom: 2px; }
+  .m span.t { white-space: pre-wrap; word-break: break-word; }
+  .m .ph { opacity: .7; font-size: 14px; margin-top: 4px; }
+  .m .lock { opacity: .6; font-style: italic; }
+  .m img { display: block; max-width: 100%; max-height: 320px; border-radius: 8px; margin-top: 4px; }
+  .m audio { display: block; width: 230px; max-width: 100%; margin-top: 4px; }
+  .m a.dl { display: block; margin-top: 4px; font-size: 13px; color: #53bdeb; text-decoration: none; word-break: break-all; }
+  .m a.file { display: flex; align-items: center; gap: 10px; margin-top: 4px; padding: 8px 10px; border-radius: 8px; background: #0003; color: inherit; text-decoration: none; }
+  .m a.file .ic { font-size: 28px; }
+  .m a.file b { display: block; word-break: break-all; }
+  .m a.file em { font-style: normal; font-size: 12px; opacity: .7; }
+  .m .quote { border-inline-start: 3px solid #65b5ff; padding: 5px 8px; margin-bottom: 7px; background: #ffffff12; border-radius: 4px; }
+  .m .quote strong { display: block; font-size: 11px; color: #83b9e5; }
+  .m .quote span { font-size: 11px; color: #b8c8d5; word-break: break-word; }
+  .m .actions { margin-top: 4px; }
+  .m .rep { background: transparent; color: #8b9bab; font-size: 12px; padding: 2px 0; }
+  .no-results { text-align: center; color: #8b9bab; padding: 20px; }
+
+  #reply-preview { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #182229; border-inline-start: 3px solid #65b5ff; }
+  #reply-preview > div { flex: 1; min-width: 0; }
+  #reply-name { display: block; font-size: 12px; color: #83b9e5; }
+  #reply-text { display: block; font-size: 12px; color: #b8c8d5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  form#f, #recbar { display: flex; gap: 8px; padding: 10px; background: #202c33; align-items: center; }
+  form#f input#text { flex: 1; min-width: 0; }
+  .ib { background: #2a3942; padding: 10px 12px; font-size: 18px; line-height: 1; }
+  #recbar { display: none; }
+  #rectime { flex: 1; color: #ff8a80; font-variant-numeric: tabular-nums; }
+
+  #emoji-picker { position: absolute; bottom: 64px; right: 10px; background: #233138; border-radius: 10px; padding: 8px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; box-shadow: 0 6px 24px #0008; z-index: 15; }
+  #emoji-picker button { background: transparent; font-size: 22px; padding: 4px 6px; }
+
+  #prog { display: none; padding: 6px 12px; background: #182229; font-size: 13px; }
+  #prog .bar { height: 5px; background: #2a3942; border-radius: 3px; margin-top: 4px; overflow: hidden; }
+  #prog .bar i { display: block; height: 100%; width: 0; background: #00a884; }
+  #toast { display: none; position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #e53935; color: #fff; padding: 10px 16px; border-radius: 8px; max-width: 90%; z-index: 40; }
+</style>
+</head>
+<body>
+<header class="chat-header">
+  <div class="group-avatar apex-logo" id="avatar">
+    <span id="avatar-letter">A</span>
+    <img id="gimg" alt="">
+  </div>
+
+  <div class="group-info">
+    <h2 id="gname">APEX</h2>
+    <p><span id="dot"></span><span id="subtitle-text">Private Room</span></p>
+  </div>
+
+  <div class="header-actions" id="hdr-actions">
+    <button class="icon-btn" id="search-toggle" title="بحث">
+      <svg viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="m20 20-4-4"></path>
+      </svg>
+    </button>
+
+    <button class="icon-btn" id="members-toggle" title="الأعضاء">
+      <svg viewBox="0 0 24 24">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="10" cy="7" r="4"></circle>
+        <path d="M20 21v-2a4 4 0 0 0-3-3.87"></path>
+      </svg>
+    </button>
+
+    <button class="icon-btn" id="more-toggle" title="المزيد">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="5" r="1"></circle>
+        <circle cx="12" cy="12" r="1"></circle>
+        <circle cx="12" cy="19" r="1"></circle>
+      </svg>
+    </button>
+
+    <div class="menu hidden" id="more-menu">
+      <button id="refresh">تحديث</button>
+      <button id="logout">خروج</button>
+    </div>
+  </div>
+</header>
+
+<div id="search-bar" class="hidden">
+  <input id="search-input" placeholder="ابحث في الرسايل..." autocomplete="off">
+  <button class="icon-btn" id="close-search" title="إغلاق">✖</button>
+</div>
+
+<aside id="members-panel" class="hidden">
+  <div class="mp-head"><b>الأعضاء</b><button class="icon-btn" id="close-members" title="إغلاق">✖</button></div>
+  <div id="members-list"></div>
+  <div class="mp-note">الأعضاء هنا هم اللي كتبوا رسايل في الشات بس.</div>
+</aside>
+
+<!-- الصفحة 1: اسم المستخدم -->
+<form id="step1" class="page">
+  <h2>أهلاً 👋</h2>
+  <p>اكتب اسم المستخدم بتاعك</p>
+  <input id="u" placeholder="اسم المستخدم" maxlength="20" autocomplete="username" enterkeyhint="next">
+  <button>التالي</button>
+  <div class="err" id="err1"></div>
+</form>
+
+<!-- الصفحة 2: الباسورد -->
+<form id="step2" class="page">
+  <h2 id="hello"></h2>
+  <p>اكتب الباسورد</p>
+  <input id="p" type="password" placeholder="الباسورد" autocomplete="current-password" enterkeyhint="go">
+  <button id="btn2">دخول</button>
+  <button type="button" class="link" id="back">تغيير الاسم</button>
+  <div class="err" id="err2"></div>
+</form>
+
+<!-- الشات -->
+<div id="chat">
+  <div id="box"></div>
+  <div id="prog"><span id="progtxt"></span><div class="bar"><i id="progbar"></i></div></div>
+  <div id="reply-preview" class="hidden">
+    <div><strong id="reply-name"></strong><span id="reply-text"></span></div>
+    <button class="icon-btn" id="cancel-reply" title="إلغاء الرد">✖</button>
+  </div>
+  <div id="emoji-picker" class="hidden"></div>
+  <form id="f">
+    <button type="button" class="ib" id="attach" title="إرفاق ملف أو صورة">📎</button>
+    <button type="button" class="ib" id="emoji-btn" title="إيموجي">😊</button>
+    <input id="text" placeholder="اكتب رسالة..." autocomplete="off">
+    <button type="button" class="ib" id="mic" title="فويس نوت">🎤</button>
+    <button>إرسال</button>
+  </form>
+  <div id="recbar">
+    <button type="button" class="ib" id="reccancel" title="إلغاء">✖</button>
+    <span id="rectime">● 0:00</span>
+    <button type="button" id="recsend">إرسال ➤</button>
+  </div>
+  <input type="file" id="fileinp" multiple hidden>
+</div>
+<div id="toast"></div>
+
+<script>
+const DATA_REPO = 'chat-data';   // اسم الريبو الخاص اللي الرسايل بتتحفظ فيه
+const MAX_MB = 20;               // أكبر ملف مسموح (بالميجا)
+const ITER = 600000;
+const EMOJIS = ['😀','😁','😂','🤣','😊','😍','😘','😎','🤔','😅','😭','😡','👍','👎','👏','🙏','💪','🔥','✨','🎉','❤️','😴','🤝','👀','🙌','😉','😬','🥳','😢','😮','✅','❌','⭐','💯'];
+
+const $ = (id) => document.getElementById(id);
+const te = new TextEncoder();
+const td = new TextDecoder();
+const ls = {
+  get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} },
+};
+const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+const AUDIO_TYPES = new Set(['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/aac', 'audio/x-m4a']);
+
+let TOKEN = '', MSGKEY = null, me = '', pendingName = '', sessionOK = false;
+let OWNER = '', ISSUE = 0;
+let seen = new Set(), since = null, pollT = null, polling = false, pauseUntil = 0, started = false, gen = 0;
+let replyTo = null;
+let members = new Map();
+
+/* ---------- أدوات صغيرة ---------- */
+const b64 = {
+  to: (buf) => {
+    const a = new Uint8Array(buf);
+    let s = '';
+    for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000));
+    return btoa(s);
+  },
+  from: (str) => {
+    const s = atob(str);
+    const a = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i);
+    return a;
+  },
+};
+const randomHex = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => b.toString(16).padStart(2, '0')).join('');
+
+function closePanels() {
+  $('more-menu').classList.add('hidden');
+  $('members-panel').classList.add('hidden');
+  $('emoji-picker').classList.add('hidden');
+  $('search-bar').classList.add('hidden');
+  $('search-input').value = '';
+}
+function show(which) {
+  $('step1').style.display = which === 'step1' ? 'flex' : 'none';
+  $('step2').style.display = which === 'step2' ? 'flex' : 'none';
+  $('chat').style.display = which === 'chat' ? 'flex' : 'none';
+  $('hdr-actions').style.display = which === 'chat' ? 'flex' : 'none';
+  $('dot').style.display = which === 'chat' ? 'inline-block' : 'none';
+  if (which !== 'chat') { closePanels(); setStatus(''); }
+}
+function setStatus(t) {
+  $('dot').className = t.indexOf('✓') >= 0 ? 'on' : '';
+  $('dot').title = t;
+}
+let toastT;
+function toast(msg) {
+  $('toast').textContent = msg;
+  $('toast').style.display = 'block';
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { $('toast').style.display = 'none'; }, 5000);
+}
+function setProg(txt, frac) {
+  $('prog').style.display = 'block';
+  $('progtxt').textContent = txt;
+  $('progbar').style.width = Math.round(Math.max(0, Math.min(1, frac)) * 100) + '%';
+}
+function fmtSize(n) {
+  if (n < 1024) return n + ' بايت';
+  if (n < 1048576) return (n / 1024).toFixed(0) + ' ك.ب';
+  return (n / 1048576).toFixed(1) + ' ميجا';
+}
+function nameSpan(name) {
+  const w = document.createElement('span');
+  w.dir = 'auto';
+  const i = name.lastIndexOf('.');
+  if (i > 0 && i < name.length - 1 && name.length - i <= 8) {
+    w.append(name.slice(0, i));
+    const e = document.createElement('span');
+    e.dir = 'ltr'; e.style.unicodeBidi = 'isolate'; e.textContent = name.slice(i);
+    w.append(e);
+  } else {
+    w.textContent = name;
+  }
+  return w;
+}
+function lazy(el, fn) {
+  if (!('IntersectionObserver' in window)) { fn(); return; }
+  const io = new IntersectionObserver((es) => {
+    if (es.some((x) => x.isIntersecting)) { io.disconnect(); fn(); }
+  }, { rootMargin: '300px' });
+  io.observe(el);
+}
+
+/* ---------- الإعدادات (config.js) ---------- */
+function loadConfig() {
+  return new Promise((res) => {
+    const s = document.createElement('script');
+    s.src = 'config.js?t=' + Date.now();
+    s.onload = () => res(true);
+    s.onerror = () => res(false);
+    document.head.appendChild(s);
+  });
+}
+function configured() {
+  return typeof ENCRYPTED_TOKEN === 'string' && ENCRYPTED_TOKEN.length > 40 && ENCRYPTED_TOKEN !== 'PASTE_HERE';
+}
+function blobParts() {
+  const raw = b64.from(ENCRYPTED_TOKEN.trim());
+  if (raw.length < 45) throw new Error('blob');
+  return { salt: raw.slice(0, 16), iv: raw.slice(16, 28), ct: raw.slice(28) };
+}
+function ownerName() {
+  const q = new URLSearchParams(location.search).get('owner');
+  if (q) return q;
+  const h = location.hostname;
+  return h.endsWith('.github.io') ? h.split('.')[0] : '';
+}
+
+// صورة الجروب: لو في ملف group.jpg (أو group.png) جنب الموقع بتظهر، وإلا بيظهر الحرف الأول من الاسم
+function loadAvatar() {
+  const names = ['group.jpg', 'group.png'];
+  let i = 0;
+  const tryNext = () => {
+    if (i >= names.length) return;
+    const t = new Image();
+    t.onload = () => { $('gimg').src = t.src; $('gimg').style.display = 'block'; $('avatar-letter').style.display = 'none'; };
+    t.onerror = () => { i++; tryNext(); };
+    t.src = names[i] + '?t=' + Date.now();
+  };
+  tryNext();
+}
+
+/* ---------- التشفير (كله في المتصفح) ---------- */
+// من الباسورد بنطلّع مفتاحين: واحد يفتح مفتاح GitHub المقفول، وواحد يشفّر الرسايل والملفات
+async function deriveKeys(pw, salt) {
+  const base = await crypto.subtle.importKey('raw', te.encode(pw.normalize('NFKC')), 'PBKDF2', false, ['deriveKey']);
+  const [tok, msg] = await Promise.all([
+    crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: ITER }, base,
+      { name: 'AES-GCM', length: 256 }, false, ['decrypt']),
+    crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: te.encode('chat-gh-msg-v1'), iterations: ITER }, base,
+      { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']),
+  ]);
+  return { tok, msg };
+}
+async function openToken(tokKey) {
+  const { iv, ct } = blobParts();
+  return td.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: te.encode('gh-token-v1') }, tokKey, ct));
+}
+async function enc(key, bytes, aad) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: te.encode(aad) }, key, bytes));
+  const out = new Uint8Array(12 + ct.length);
+  out.set(iv); out.set(ct, 12);
+  return out;
+}
+async function dec(key, data, aad) {
+  return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: data.subarray(0, 12), additionalData: te.encode(aad) }, key, data.subarray(12)));
+}
+
+// المفاتيح بتتحفظ في المتصفح (مش قابلة للنسخ) عشان متكتبش الباسورد كل مرة
+function idb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('chat-gh-keys', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('k');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function keyGet(name) {
+  try {
+    const db = await idb();
+    return await new Promise((res) => {
+      const q = db.transaction('k').objectStore('k').get(name);
+      q.onsuccess = () => res(q.result || null);
+      q.onerror = () => res(null);
+    });
+  } catch (e) { return null; }
+}
+async function keySet(name, val) {
+  try {
+    const db = await idb();
+    await new Promise((res) => {
+      const t = db.transaction('k', 'readwrite');
+      t.objectStore('k').put(val, name);
+      t.oncomplete = res; t.onerror = res; t.onabort = res;
+    });
+  } catch (e) {}
+}
+async function keysClear() {
+  try {
+    const db = await idb();
+    await new Promise((res) => {
+      const t = db.transaction('k', 'readwrite');
+      t.objectStore('k').clear();
+      t.oncomplete = res; t.onerror = res; t.onabort = res;
+    });
+  } catch (e) {}
+}
+
+/* ---------- الكلام مع GitHub ---------- */
+async function gh(path, opts) {
+  opts = opts || {};
+  const headers = Object.assign({ Authorization: 'Bearer ' + TOKEN, Accept: 'application/vnd.github+json' }, opts.headers || {});
+  const r = await fetch('https://api.github.com' + path, Object.assign({}, opts, { headers }));
+  if (r.status === 401) { authFailed(); throw new Error('auth'); }
+  if (r.status === 403 || r.status === 429) {
+    const rem = r.headers.get('x-ratelimit-remaining');
+    const ra = r.headers.get('retry-after');
+    if (rem === '0' || ra) {
+      const reset = Number(r.headers.get('x-ratelimit-reset')) * 1000;
+      const wait = ra ? Number(ra) * 1000 : Math.max(60000, reset - Date.now());
+      pauseUntil = Date.now() + Math.min(wait, 10 * 60 * 1000);
+      throw new Error('rate');
+    }
+    throw new Error('perm');
+  }
+  return r;
+}
+
+function authFailed() {
+  gen++;
+  started = false;
+  clearTimeout(pollT);
+  TOKEN = ''; MSGKEY = null; sessionOK = false;
+  keysClear();
+  show('step1');
+  $('err1').textContent = 'المفتاح انتهى أو غلط. كلّم صاحب الموقع.';
+}
+
+async function findIssue() {
+  let r = await gh('/repos/' + OWNER + '/' + DATA_REPO + '/issues?state=all&sort=created&direction=asc&per_page=1');
+  if (!r.ok) throw new Error('issues ' + r.status);
+  const a = await r.json();
+  if (a.length) return a[0].number;
+  r = await gh('/repos/' + OWNER + '/' + DATA_REPO + '/issues', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'chat' }),
+  });
+  if (!r.ok) throw new Error('issue-create ' + r.status);
+  return (await r.json()).number;
+}
+
+async function fetchComments(sinceIso) {
+  const out = [];
+  for (let page = 1; page <= 50; page++) {
+    const q = '/repos/' + OWNER + '/' + DATA_REPO + '/issues/' + ISSUE + '/comments?per_page=100&page=' + page +
+      (sinceIso ? '&since=' + encodeURIComponent(sinceIso) : '');
+    const r = await gh(q);
+    if (!r.ok) throw new Error('comments ' + r.status);
+    const arr = await r.json();
+    out.push(...arr);
+    if (arr.length < 100) break;
+  }
+  return out;
+}
+function updateSince(arr) {
+  let max = since ? Date.parse(since) + 2000 : 0;
+  for (const c of arr) { const t = Date.parse(c.updated_at || c.created_at); if (t > max) max = t; }
+  if (max) since = new Date(max - 2000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+async function postPayload(obj) {
+  const body = 'v1:' + b64.to(await enc(MSGKEY, te.encode(JSON.stringify(obj)), 'm'));
+  const r = await gh('/repos/' + OWNER + '/' + DATA_REPO + '/issues/' + ISSUE + '/comments', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body }),
+  });
+  if (!r.ok) throw new Error('post ' + r.status);
+  await addComment(await r.json());
+}
+
+async function getFile(f) {
+  const r = await gh('/repos/' + OWNER + '/' + DATA_REPO + '/contents/f/' + f.id, { headers: { Accept: 'application/vnd.github.raw+json' } });
+  if (!r.ok) throw new Error('file ' + r.status);
+  return dec(MSGKEY, new Uint8Array(await r.arrayBuffer()), 'f|' + f.id);
+}
+function blobUrl(bytes, type) { return URL.createObjectURL(new Blob([bytes], { type })); }
+
+async function downloadFile(f) {
+  try {
+    setProg('جاري تنزيل وفك تشفير ' + f.name + ' ...', 0.5);
+    const url = blobUrl(await getFile(f), 'application/octet-stream');
+    const a = document.createElement('a');
+    a.href = url; a.download = f.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
+  } catch (e) {
+    toast('مش قادر أنزّل الملف أو أفك تشفيره');
+  }
+  if (!busy) $('prog').style.display = 'none';
+}
+
+/* ---------- الأعضاء ---------- */
+function updateSubtitle() {
+  const n = members.size;
+  $('subtitle-text').textContent = n ? 'Private Room · ' + n + (n === 1 ? ' Member' : ' Members') : 'Private Room';
+}
+function noteMember(name, time) {
+  const m = members.get(name) || { count: 0, last: 0 };
+  m.count++;
+  const t = Date.parse(time);
+  if (t > m.last) m.last = t;
+  members.set(name, m);
+  updateSubtitle();
+}
+function renderMembers() {
+  const list = $('members-list');
+  list.innerHTML = '';
+  const arr = Array.from(members.entries()).sort((a, b) => b[1].last - a[1].last);
+  if (!arr.length) { list.textContent = 'لسه مفيش حد كتب.'; return; }
+  for (const [name, m] of arr) {
+    const row = document.createElement('div');
+    row.className = 'member';
+    const av = document.createElement('div');
+    av.className = 'av'; av.textContent = (name[0] || '?').toUpperCase();
+    const info = document.createElement('div');
+    const nm = document.createElement('div');
+    nm.textContent = name + (name === me ? ' (أنت)' : '');
+    const sm = document.createElement('small');
+    sm.textContent = m.count + ' رسالة • آخر رسالة ' + new Date(m.last).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
+    info.append(nm, sm);
+    row.append(av, info);
+    list.appendChild(row);
+  }
+}
+
+/* ---------- الرد على رسالة ---------- */
+function setReply(name, text) {
+  replyTo = { n: name, t: text };
+  $('reply-name').textContent = 'رد على ' + name;
+  $('reply-text').textContent = text;
+  $('reply-preview').classList.remove('hidden');
+  $('text').focus();
+}
+function cancelReplyAction() {
+  replyTo = null;
+  $('reply-preview').classList.add('hidden');
+}
+function takeReply() {
+  const r = replyTo;
+  cancelReplyAction();
+  return r;
+}
+
+/* ---------- البحث ---------- */
+const box = $('box');
+function applySearch() {
+  const q = $('search-input').value.toLowerCase().trim();
+  let found = 0;
+  box.querySelectorAll('.m').forEach((m) => {
+    const match = !q || m.textContent.toLowerCase().includes(q);
+    m.style.display = match ? '' : 'none';
+    if (match) found++;
+  });
+  let nr = $('no-results');
+  if (q && found === 0) {
+    if (!nr) {
+      nr = document.createElement('div');
+      nr.id = 'no-results'; nr.className = 'no-results';
+      nr.textContent = 'مفيش رسايل بالاسم ده.';
+      box.appendChild(nr);
+    }
+  } else if (nr) {
+    nr.remove();
+  }
+}
+
+/* ---------- عرض الرسايل ---------- */
+function down() { box.scrollTop = box.scrollHeight; }
+
+function bubble(name, time) {
+  const d = document.createElement('div');
+  d.className = 'm' + (name === me ? ' me' : '');
+  const s = document.createElement('small');
+  s.textContent = name + ' • ' + new Date(time).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
+  d.append(s);
+  box.appendChild(d);
+  return d;
+}
+
+function render(p, c) {
+  const name = String(p.n || '?').slice(0, 20);
+  const d = bubble(name, c.created_at);
+  noteMember(name, c.created_at);
+  const f = p.f;
+  const okFile = f && /^[a-f0-9]{32}$/.test(String(f.id)) && typeof f.name === 'string';
+  let preview = '';
+
+  if (p.r && typeof p.r.t === 'string') {
+    const q = document.createElement('div');
+    q.className = 'quote';
+    const qn = document.createElement('strong');
+    qn.textContent = String(p.r.n || '').slice(0, 20);
+    const qt = document.createElement('span');
+    qt.textContent = p.r.t.slice(0, 100);
+    q.append(qn, qt);
+    d.append(q);
+  }
+
+  if (p.k === 'text') {
+    const sp = document.createElement('span');
+    sp.className = 't'; sp.dir = 'auto'; sp.textContent = String(p.t || '');
+    d.append(sp);
+    preview = String(p.t || '').slice(0, 100);
+  } else if (okFile && IMAGE_TYPES.has(f.type)) {
+    preview = '🖼 ' + f.name;
+    const ph = document.createElement('div');
+    ph.className = 'ph'; ph.textContent = '🖼 صورة (بتتحمّل...)';
+    d.append(ph);
+    lazy(ph, async () => {
+      try {
+        const url = blobUrl(await getFile(f), f.type);
+        const a = document.createElement('a');
+        a.href = url; a.target = '_blank'; a.rel = 'noopener';
+        const img = document.createElement('img');
+        img.alt = f.name; img.onload = down; img.src = url;
+        a.append(img);
+        ph.replaceWith(a);
+      } catch (e) { ph.textContent = '🔒 مش قادر أفك تشفير الصورة'; }
+    });
+    const dl = document.createElement('a');
+    dl.className = 'dl'; dl.href = '#';
+    dl.append('⬇ ', nameSpan(f.name), ' (' + fmtSize(Number(f.size) || 0) + ')');
+    dl.onclick = (ev) => { ev.preventDefault(); downloadFile(f); };
+    d.append(dl);
+  } else if (okFile && p.k === 'voice' && AUDIO_TYPES.has(f.type)) {
+    preview = '🎤 فويس';
+    const ph = document.createElement('div');
+    ph.className = 'ph'; ph.textContent = '🎤 فويس (بيتحمّل...)';
+    d.append(ph);
+    lazy(ph, async () => {
+      try {
+        const au = document.createElement('audio');
+        au.controls = true; au.preload = 'metadata';
+        au.src = blobUrl(await getFile(f), f.type);
+        ph.replaceWith(au);
+      } catch (e) { ph.textContent = '🔒 مش قادر أفك تشفير الفويس'; }
+    });
+  } else if (okFile) {
+    preview = '📎 ' + f.name;
+    const a = document.createElement('a');
+    a.className = 'file'; a.href = '#';
+    const ic = document.createElement('span'); ic.className = 'ic'; ic.textContent = '📄';
+    const info = document.createElement('div');
+    const nm = document.createElement('b'); nm.append(nameSpan(f.name));
+    const sz = document.createElement('em'); sz.textContent = fmtSize(Number(f.size) || 0) + ' • اضغط للتنزيل';
+    info.append(nm, sz);
+    a.append(ic, info);
+    a.onclick = (ev) => { ev.preventDefault(); downloadFile(f); };
+    d.append(a);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+  const rb = document.createElement('button');
+  rb.type = 'button'; rb.className = 'rep'; rb.textContent = '↩ رد';
+  rb.onclick = () => setReply(name, preview || '…');
+  actions.append(rb);
+  d.append(actions);
+
+  down();
+  applySearch();
+}
+
+async function addComment(c) {
+  if (seen.has(c.id)) return;
+  seen.add(c.id);
+  const body = String(c.body || '');
+  if (!body.startsWith('v1:')) return;
+  let p;
+  try {
+    p = JSON.parse(td.decode(await dec(MSGKEY, b64.from(body.slice(3)), 'm')));
+  } catch (e) {
+    const d = bubble('؟', c.created_at);
+    const sp = document.createElement('span');
+    sp.className = 'lock'; sp.textContent = '🔒 مش قادر أفك تشفير الرسالة دي';
+    d.append(sp);
+    return;
+  }
+  render(p, c);
+}
+
+/* ---------- المتابعة (كل كام ثانية بنسأل عن رسايل جديدة) ---------- */
+function errText(e) {
+  const m = String(e && e.message || '');
+  if (m === 'owner') return 'مش قادر أعرف حساب GitHub من لينك الموقع';
+  if (m === 'rate') return 'GitHub طلب نستنى شوية، هحاول تاني تلقائي';
+  if (m === 'perm') return 'المفتاح معندوش الصلاحيات الكافية (Contents وIssues)';
+  if (m.startsWith('issues 404') || m.startsWith('comments 404')) return 'مش لاقي ريبو ' + DATA_REPO + ' (اتأكد من الاسم والمفتاح)';
+  return 'مشكلة في الاتصال (' + m + ')';
+}
+
+async function pollOnce() {
+  if (polling || !TOKEN || Date.now() < pauseUntil) return;
+  polling = true;
+  const myGen = gen;
+  try {
+    const arr = await fetchComments(since);
+    if (myGen !== gen) return;
+    for (const c of arr) await addComment(c);
+    updateSince(arr);
+    setStatus('متصل ✓');
+  } catch (e) {
+    if (myGen === gen) setStatus('مفيش اتصال');
+  } finally {
+    polling = false;
+  }
+}
+function schedule() {
+  clearTimeout(pollT);
+  pollT = setTimeout(async () => {
+    await pollOnce();
+    if (started) schedule();
+  }, document.hidden ? 30000 : 6000);
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && started) { pollOnce(); schedule(); }
+});
+
+async function startChat() {
+  gen++;
+  const myGen = gen;
+  show('chat');
+  setStatus('جاري التحميل...');
+  box.innerHTML = '';
+  seen = new Set(); since = null; members = new Map();
+  updateSubtitle();
+  try {
+    OWNER = ownerName();
+    if (!OWNER) throw new Error('owner');
+    ISSUE = await findIssue();
+    const arr = await fetchComments(null);
+    if (myGen !== gen) return;
+    for (const c of arr) await addComment(c);
+    updateSince(arr);
+    started = true;
+    setStatus('متصل ✓');
+    schedule();
+  } catch (e) {
+    if (myGen !== gen) return;
+    setStatus('مشكلة');
+    toast(errText(e));
+    if (String(e.message) !== 'owner') setTimeout(() => { if (myGen === gen) startChat(); }, 10000);
+  }
+}
+
+/* ---------- الدخول: اسم المستخدم ثم الباسورد ---------- */
+function setErr2(msg, info) {
+  $('err2').textContent = msg;
+  $('err2').className = 'err' + (info ? ' info' : '');
+}
+
+$('step1').onsubmit = (e) => {
+  e.preventDefault();
+  const n = $('u').value.trim();
+  if (n.length < 2) { $('err1').textContent = 'اكتب اسم من حرفين على الأقل'; return; }
+  if (!configured()) { $('err1').textContent = 'الموقع لسه مش متظبط (مفتاح GitHub مش متحط).'; return; }
+  pendingName = n;
+  $('err1').textContent = '';
+  if (sessionOK) { me = n; ls.set('name', n); startChat(); return; }
+  $('hello').textContent = 'أهلاً ' + n + ' 👋';
+  $('p').value = '';
+  setErr2('');
+  show('step2');
+  $('p').focus();
+};
+$('back').onclick = () => { show('step1'); $('u').focus(); };
+
+$('step2').onsubmit = async (e) => {
+  e.preventDefault();
+  const pw = $('p').value;
+  if (!pw) { setErr2('اكتب الباسورد'); return; }
+  if (!window.crypto || !crypto.subtle) { setErr2('التشفير محتاج الصفحة تتفتح من لينك https'); return; }
+  $('btn2').disabled = true;
+  setErr2('جاري التحقق... (ممكن ياخد كام ثانية)', true);
+  try {
+    const { salt } = blobParts();
+    const { tok, msg } = await deriveKeys(pw, salt);
+    let token;
+    try { token = await openToken(tok); }
+    catch (err) { setErr2('الباسورد غلط'); $('btn2').disabled = false; return; }
+    TOKEN = token; MSGKEY = msg; sessionOK = true;
+    await keySet('tok', tok); await keySet('msg', msg);
+    me = pendingName; ls.set('name', me);
+    $('p').value = '';
+    setErr2('');
+    startChat();
+  } catch (err) {
+    setErr2('حصلت مشكلة، جرّب تاني');
+  }
+  $('btn2').disabled = false;
+};
+
+$('logout').onclick = async () => {
+  gen++;
+  started = false;
+  clearTimeout(pollT);
+  TOKEN = ''; MSGKEY = null; sessionOK = false;
+  await keysClear();
+  show('step1');
+  $('u').focus();
+};
+$('refresh').onclick = () => location.reload();
+
+/* ---------- أزرار الهيدر ---------- */
+$('search-toggle').onclick = () => {
+  $('search-bar').classList.toggle('hidden');
+  if (!$('search-bar').classList.contains('hidden')) { $('search-input').focus(); }
+  else { $('search-input').value = ''; applySearch(); }
+};
+$('close-search').onclick = () => { $('search-bar').classList.add('hidden'); $('search-input').value = ''; applySearch(); };
+$('search-input').addEventListener('input', applySearch);
+
+$('members-toggle').onclick = () => { renderMembers(); $('members-panel').classList.toggle('hidden'); };
+$('close-members').onclick = () => $('members-panel').classList.add('hidden');
+
+$('more-toggle').onclick = (ev) => { ev.stopPropagation(); $('more-menu').classList.toggle('hidden'); };
+$('cancel-reply').onclick = cancelReplyAction;
+
+/* ---------- الإيموجي ---------- */
+for (const em of EMOJIS) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.textContent = em;
+  b.onclick = () => {
+    const el = $('text');
+    const s = el.selectionStart != null ? el.selectionStart : el.value.length;
+    const e2 = el.selectionEnd != null ? el.selectionEnd : s;
+    el.value = el.value.slice(0, s) + em + el.value.slice(e2);
+    const pos = s + em.length;
+    el.setSelectionRange(pos, pos);
+    el.focus();
+  };
+  $('emoji-picker').appendChild(b);
+}
+$('emoji-btn').onclick = (ev) => { ev.stopPropagation(); $('emoji-picker').classList.toggle('hidden'); };
+document.addEventListener('click', (ev) => {
+  if (!$('emoji-picker').contains(ev.target)) $('emoji-picker').classList.add('hidden');
+  if (!$('more-menu').contains(ev.target)) $('more-menu').classList.add('hidden');
+});
+
+/* ---------- إرسال رسالة ---------- */
+$('f').onsubmit = async (e) => {
+  e.preventDefault();
+  const text = $('text').value.trim().slice(0, 2000);
+  if (!text || !MSGKEY) return;
+  $('text').value = '';
+  const payload = { n: me, k: 'text', t: text };
+  const r = takeReply();
+  if (r) payload.r = r;
+  try { await postPayload(payload); }
+  catch (err) { toast('فشل إرسال الرسالة (' + errText(err) + ')'); }
+};
+
+/* ---------- رفع الملفات والصور والفويس (بتتشفر قبل الرفع) ---------- */
+const queue = [];
+let busy = false;
+
+function queueFiles(files, kind) {
+  let r = takeReply();
+  for (const f of files) {
+    if (f.size === 0) { toast('«' + f.name + '» فاضي'); continue; }
+    if (f.size > MAX_MB * 1048576) { toast('«' + f.name + '» أكبر من ' + MAX_MB + ' ميجا. الملفات الكبيرة ابعتوها بطريقة تانية (لينك في الشات).'); continue; }
+    queue.push({ f, kind, r });
+    r = null; // الرد بيتربط بأول ملف بس
+  }
+  next();
+}
+function next() {
+  if (busy || !queue.length) return;
+  busy = true;
+  const { f, kind, r } = queue.shift();
+  uploadOne(f, kind, r)
+    .catch((e) => toast('فشل رفع الملف (' + errText(e) + ')'))
+    .then(() => {
+      busy = false;
+      $('prog').style.display = queue.length ? 'block' : 'none';
+      next();
+    });
+}
+
+function putFile(id, bodyStr, onFrac) {
+  return new Promise((resolve, reject) => {
+    let tries = 0;
+    const go = () => {
+      const x = new XMLHttpRequest();
+      x.open('PUT', 'https://api.github.com/repos/' + OWNER + '/' + DATA_REPO + '/contents/f/' + id);
+      x.setRequestHeader('Authorization', 'Bearer ' + TOKEN);
+      x.setRequestHeader('Accept', 'application/vnd.github+json');
+      x.setRequestHeader('Content-Type', 'application/json');
+      x.upload.onprogress = (e) => { if (e.lengthComputable) onFrac(e.loaded / e.total); };
+      x.onloadend = () => {
+        if (x.status === 200 || x.status === 201) return resolve();
+        if (x.status === 401) { authFailed(); return reject(new Error('auth')); }
+        if (x.status === 403 || x.status === 404) return reject(new Error(x.status === 404 ? 'issues 404' : 'perm'));
+        if ((x.status === 409 || x.status === 0 || x.status >= 500) && ++tries <= 3) return setTimeout(go, 1500 * tries);
+        reject(new Error('put ' + x.status));
+      };
+      x.send(bodyStr);
+    };
+    go();
+  });
+}
+
+async function uploadOne(f, kind, r) {
+  if (!MSGKEY) throw new Error('auth');
+  const label = (f.name || 'ملف').slice(0, 120);
+  const type = (f.type || 'application/octet-stream').split(';')[0].toLowerCase();
+  const k = kind === 'voice' ? 'voice' : IMAGE_TYPES.has(type) ? 'image' : 'file';
+  const id = randomHex(16);
+  setProg('جاري تشفير ' + label + ' ...', 0);
+  const plain = new Uint8Array(await f.arrayBuffer());
+  const cipher = await enc(MSGKEY, plain, 'f|' + id);
+  const bodyStr = JSON.stringify({ message: 'f', content: b64.to(cipher) });
+  await putFile(id, bodyStr, (fr) => setProg('جاري رفع ' + label + ' ' + Math.round(fr * 100) + '%', fr));
+  const payload = { n: me, k, f: { id, name: label, type, size: f.size } };
+  if (r) payload.r = r;
+  await postPayload(payload);
+}
+
+$('attach').onclick = () => $('fileinp').click();
+$('fileinp').onchange = () => { queueFiles(Array.from($('fileinp').files), 'file'); $('fileinp').value = ''; };
+addEventListener('dragover', (e) => e.preventDefault());
+addEventListener('drop', (e) => {
+  e.preventDefault();
+  if ($('chat').style.display === 'flex' && e.dataTransfer && e.dataTransfer.files.length) {
+    queueFiles(Array.from(e.dataTransfer.files), 'file');
+  }
+});
+
+/* ---------- الفويس نوت ---------- */
+let rec = null, recStream = null, recChunks = [], recCancelled = false, recTimer = null, recStart = 0;
+
+async function startRec() {
+  if (!navigator.mediaDevices || !window.MediaRecorder) {
+    toast('المتصفح ده مش بيدعم تسجيل الصوت');
+    return;
+  }
+  try {
+    recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    toast('لازم تسمح للمتصفح باستخدام الميكروفون');
+    return;
+  }
+  const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+  const mt = types.find((t) => MediaRecorder.isTypeSupported(t)) || '';
+  rec = mt ? new MediaRecorder(recStream, { mimeType: mt }) : new MediaRecorder(recStream);
+  recChunks = []; recCancelled = false;
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
+  rec.onstop = () => {
+    recStream.getTracks().forEach((t) => t.stop());
+    clearInterval(recTimer);
+    $('recbar').style.display = 'none';
+    $('f').style.display = 'flex';
+    if (recCancelled || !recChunks.length) return;
+    const type = (rec.mimeType || mt || 'audio/webm').split(';')[0];
+    const ext = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
+    const file = new File([new Blob(recChunks, { type })], 'voice-' + Date.now() + '.' + ext, { type });
+    queueFiles([file], 'voice');
+  };
+  rec.start();
+  recStart = Date.now();
+  $('f').style.display = 'none';
+  $('recbar').style.display = 'flex';
+  $('rectime').textContent = '● 0:00';
+  recTimer = setInterval(() => {
+    const s = Math.floor((Date.now() - recStart) / 1000);
+    $('rectime').textContent = '● ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    if (s >= 300) stopRec(false);
+  }, 250);
+}
+function stopRec(cancel) {
+  recCancelled = cancel;
+  if (rec && rec.state !== 'inactive') rec.stop();
+}
+$('mic').onclick = startRec;
+$('recsend').onclick = () => stopRec(false);
+$('reccancel').onclick = () => stopRec(true);
+
+/* ---------- أول ما الصفحة تفتح ---------- */
+(async () => {
+  await loadConfig();
+  if (typeof GROUP_NAME === 'string' && GROUP_NAME) {
+    $('gname').textContent = GROUP_NAME;
+    $('avatar-letter').textContent = (GROUP_NAME.trim()[0] || 'A').toUpperCase();
+    document.title = GROUP_NAME;
+  }
+  loadAvatar();
+  if (configured()) {
+    // لو دخلت قبل كده على نفس الجهاز، المفاتيح متخزنة، فمش هتكتب الباسورد تاني
+    const tk = await keyGet('tok'), mk = await keyGet('msg');
+    if (tk && mk) {
+      try { TOKEN = await openToken(tk); MSGKEY = mk; sessionOK = true; }
+      catch (e) { await keysClear(); TOKEN = ''; MSGKEY = null; }
+    }
+  }
+  const saved = ls.get('name') || '';
+  if (sessionOK && saved.length >= 2) { me = saved; startChat(); return; }
+  show('step1');
+  $('u').value = saved;
+  if (!configured()) $('err1').textContent = 'الموقع لسه مش متظبط (مفتاح GitHub مش متحط).';
+  $('u').focus();
+})();
+</script>
+</body>
+</html>

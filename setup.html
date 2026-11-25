@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- الصفحة دي مش بتبعت أي حاجة لأي موقع. السطر ده بيمنع المتصفح نفسه من أي اتصال بالنت -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<title>قفل المفتاح</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #111b21; color: #e9edef; min-height: 100dvh; display: flex; justify-content: center; padding: 20px; }
+  main { width: min(480px, 100%); display: flex; flex-direction: column; gap: 10px; margin: auto 0; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  p { margin: 0; color: #8696a0; line-height: 1.6; }
+  label { margin-top: 6px; font-size: 14px; }
+  input, textarea, button { font: inherit; padding: 12px; border-radius: 8px; border: 0; width: 100%; }
+  input, textarea { background: #2a3942; color: #e9edef; }
+  textarea { height: 150px; direction: ltr; word-break: break-all; font-size: 13px; }
+  button { background: #00a884; color: #fff; cursor: pointer; margin-top: 6px; }
+  button:disabled { opacity: .6; }
+  #err { color: #ff8a80; min-height: 1.3em; }
+  #out { display: none; flex-direction: column; gap: 8px; }
+  .ok { color: #7ee2a8; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🔒 قفل المفتاح بالباسورد</h1>
+  <p>الصفحة دي بتشتغل في متصفحك بس، ومفيش حاجة بتتبعت لأي حد.</p>
+
+  <label for="tok">المفتاح (اللي نسخته من GitHub)</label>
+  <input id="tok" type="password" autocomplete="off" placeholder="github_pat_...">
+
+  <label for="pw">باسورد الشات</label>
+  <input id="pw" type="password" autocomplete="off" placeholder="16 حرف على الأقل">
+
+  <label for="pw2">اكتب الباسورد تاني</label>
+  <input id="pw2" type="password" autocomplete="off">
+
+  <button id="go">قفل</button>
+  <div id="err"></div>
+
+  <div id="out">
+    <p class="ok">تمام! ده النص المقفول. انسخه كله (من أوله لآخره):</p>
+    <textarea id="res" readonly></textarea>
+    <button id="copy">نسخ</button>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const te = new TextEncoder();
+const ITER = 600000;
+
+function b64(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+async function deriveTok(pw, salt, usages) {
+  const base = await crypto.subtle.importKey('raw', te.encode(pw.normalize('NFKC')), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', hash: 'SHA-256', salt, iterations: ITER },
+    base, { name: 'AES-GCM', length: 256 }, false, usages);
+}
+
+function fail(msg) { $('err').style.color = '#ff8a80'; $('err').textContent = msg; $('go').disabled = false; }
+
+$('go').onclick = async () => {
+  $('out').style.display = 'none';
+  const token = $('tok').value.trim();
+  const pw = $('pw').value;
+  if (!window.crypto || !crypto.subtle) return fail('المتصفح ده مش بيدعم التشفير. افتح الصفحة من لينك https.');
+  if (!token) return fail('الصق المفتاح الأول');
+  if (token.startsWith('ghp_')) return fail('ده مفتاح من نوع تاني (قديم وصلاحياته كبيرة). اعمل Fine-grained token زي ما في الخطوات.');
+  if (pw.length < 16) return fail('الباسورد لازم يكون 16 حرف على الأقل');
+  if (pw !== $('pw2').value) return fail('الباسورد التاني مش زي الأول');
+
+  $('go').disabled = true;
+  $('err').style.color = '#8696a0';
+  $('err').textContent = 'جاري القفل... (ممكن ياخد كام ثانية)';
+  try {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const aad = te.encode('gh-token-v1');
+    const encKey = await deriveTok(pw, salt, ['encrypt']);
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: aad }, encKey, te.encode(token)));
+    const blob = new Uint8Array(16 + 12 + ct.length);
+    blob.set(salt); blob.set(iv, 16); blob.set(ct, 28);
+
+    // تأكد إن الفك بيرجّع نفس المفتاح بالظبط قبل ما نطلّع النص
+    const decKey = await deriveTok(pw, salt, ['decrypt']);
+    const back = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: aad }, decKey, ct));
+    if (back !== token) throw new Error('mismatch');
+
+    $('res').value = b64(blob);
+    $('out').style.display = 'flex';
+    $('err').textContent = '';
+    $('go').disabled = false;
+  } catch (e) {
+    fail('حصلت مشكلة في القفل. جرّب تاني.');
+  }
+};
+
+$('copy').onclick = async () => {
+  const t = $('res').value;
+  try { await navigator.clipboard.writeText(t); $('copy').textContent = 'اتنسخ ✓'; }
+  catch (e) { $('res').select(); document.execCommand('copy'); $('copy').textContent = 'اتنسخ ✓'; }
+  setTimeout(() => { $('copy').textContent = 'نسخ'; }, 2000);
+};
+</script>
+</body>
+</html>
